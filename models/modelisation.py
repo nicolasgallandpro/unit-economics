@@ -48,7 +48,7 @@ def _optimalModel(X,y,modelType):
     while b-a > 1 :
         i=i+1
         alpha = alphas[m]
-        model = modelType(alpha=alpha,fit_intercept= False, normalize=True, max_iter=1e6)
+        model = modelType(alpha=alpha,fit_intercept= False, normalize=True, max_iter=int(1e6))
         model.fit(X,y)
         modelok = not len([a for a in model.coef_ if a < 0])
         if modelok: #on s'assure que tous les poids sont positifs, sinon le model est refusé
@@ -58,7 +58,7 @@ def _optimalModel(X,y,modelType):
         m = (a+b)//2
         
     alpha = alphas[b]
-    model = modelType(alpha=alpha,fit_intercept= False, normalize=True, max_iter=1e6)
+    model = modelType(alpha=alpha,fit_intercept= False, normalize=True, max_iter=int(1e6))
     model.fit(X,y)
     return model
 
@@ -66,20 +66,29 @@ def optimalModel(X,y,modelType):
     """ Test Ridge model. if it fails (surfit), test Lasso model"""
     if modelType =='std':
         try:
+            print('Ridge')
             return _optimalModel(X,y,Ridge)
         except:
+            print("exception avec Ridge, je passe à Lasso")
             return _optimalModel(X,y,Lasso)
-    else :
+    elif type(modelType)==str :
+        if modelType.lower() == 'lasso':
+            print('choix user : lasso')
+            return _optimalModel(X,y,Lasso)
+        elif modelType.lower() == 'ridge':
+            return _optimalModel(X,y,Ridge)
+    else: 
         return _optimalModel(X,y,modelType)
-
-def modeliseEtExtrapole(y, pointsSortie, modelType):
+    
+def modeliseEtExtrapole(y, pointsSortie, modelType='std'):
     model = optimalModel(predictors(coefs, len(y)), y, modelType)
     if not model:
         return model
     s_predicteursnoms = ','.join([ (''+str(c)+'%') for c in coefs ])
     out = model.predict(predictors(coefs, pointsSortie))
-    s_out = ','.join([str(  int(s*1000)/1000   ) for s in out])
-    return '['+s_out +"]|["+ s_predicteursnoms +"]|["+ ','.join([str( int(s*1000)/1000) for s in model.coef_])+']'
+    return out
+    #s_out = ','.join([str(  int(s*1000)/1000   ) for s in out])
+    #return '['+s_out +"]|["+ s_predicteursnoms +"]|["+ ','.join([str( int(s*1000)/1000) for s in model.coef_])+']'
 
 def anomalieFixed(y, modelType, start):
     modelType = traductModel(modelType)
